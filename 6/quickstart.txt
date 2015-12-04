@@ -1,0 +1,29 @@
+
+Tutorials:Beefball
+
+<- Back to all Tutorials
+Introduction
+
+If you're looking for a jump-start on how to make games with FlatRedBall and Glue, you've come to the right place. The following tutorials will walk you through how to make a game called "Beefball". Beefball is a fast-paced physics based game similar to air-hockey. What are you waiting for, let's get started!
+Tutorials
+
+Creating a Glue project
+Creating an Entity
+Creating a Screen
+Controlling an Entity
+Creating the Screen Collision
+Advanced PlayerBall Controls
+Creating the Puck Entity
+Adding multiple players
+Scoring and Restarting Rounds
+Scoring HUD
+Scoring Hud Logic
+Adding Dashing
+Beefball with Networking
+
+The following tutorials discuss how to add networking to the Beefball game. If you are here just to learn about how to use FlatRedBall and Glue then you may want to skip over these tutorials.
+Advanced: Introduction to Networking
+Advanced: Creating the Client and Server Classes
+Advanced: Adding in the Networked Multiplayer
+Advanced: Waiting for Player
+Advanced: Client-side Prediction

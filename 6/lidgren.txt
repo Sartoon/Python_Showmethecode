@@ -1,0 +1,115 @@
+http://genericgamedev.com/tutorials/lidgren-network-an-introduction-to-networking-in-csharp-games/
+Posted on 2015-03-09
+by Paul Scharf
+Ten or so days ago I started working on a new project 每 a game prototype currently called Syzygy. You can find the code for the entire project on GitHub, so feel free to take a look!
+The game will have, and is from the start built around multiplayer gameplay. Since I want to get to work on the gameplay as quickly as possible, I did not want to spend any time writing my own networking library.
+When searching online for what other people are using for their C# multiplayer games I came acrossLidgren.Network by Michael Lidgren. The library had been used in another project I was part of several years ago, and I did not find any obviously better alternatives, so I decided to give it a try.
+Unfortunately, the library＊s documentation is scarce and partly out of date. The same goes for useful examples, or I am really bad at finding them.
+Last week I taught myself the basics of the Lidgren.Network, while adding a connection and lobby system to Syzygy. Today I would like to share what I have learned to hopefully help others that are looking into using the library.
+In this tutorial I will:
+go over the most important types of the library;
+explain how to set up a simple connection between a server and a client;
+write about how to receive and send messages.
+Further, during the next few weeks I will write another couple of posts on how to set up a flexible architecture to easily handle our game＊s networking, and to go into some additional features of Lidgren.Network.
+Most important types
+
+class NetPeer
+class NetServer : NetPeer
+class NetClient : NetPeer
+In principle Lidgren.Network is a peer to peer library. The base type to handle all network connections is therefore NetPeer. However, the library also natively supports the 每 for many purposes simpler 每 client-server architecture, using NetServer and NetClient which inherit fromNetPeer.
+class NetPeerConfiguration
+This type is used to specify the parameters used when setting up any NetPeer. The most important ones will be mentioned below.
+class NetBuffer
+class NetIncomingMessage : NetBuffer
+class NetOutgoingMessage : NetBuffer
+A NetBuffer is essentially a byte array used as base class for both NetIncomingMessage andNetOutgoingMessage, which are used for exactly the purpose that their names suggest. NetBufferoffers a variety of methods to easily read and write all sorts of data to/from the underlying array.
+enum NetIncomingMessageType
+This enumerator determines the type of an incoming message. These are mostly self-explanatory, and reasonably well documented, but we will also mention the most important values below.
+enum NetConnectionStatus
+This enumerator represents the status of a connection between two peers (including client and server). These are well documented, but we will again mention the most important ones.
+Setting up a server
+
+var config = new NetPeerConfiguration("application name")
+    { Port = 12345 };
+var server = new NetServer(config);
+server.Start();
+As you can see in this bit of pseudo code, starting a server could hardly be easier. Important to note is that the application name has to be the same for all connected peers. Lidgren uses this as identification to only consider 每 hopefully 每 legitimate connection attempts.
+You can of course always do your own validation as well.
+The port you specify will be used to listen for incoming messages. In general it is easier to set one yourself, but you can also not do so and let Lidgren find an unused port for you.
+When calling Start on your server (and any other NetPeer), Lidgren will bind the appropriate network socket and create a new background thread that handles the networking.
+Setting up a client
+
+var config = new NetPeerConfiguration("application name");
+var client = new NetClient(config);
+client.Start();
+client.Connect(host: "127.0.0.1", port: 12345);
+Setting up a client is similarly simple and uses virtually the same code as setting up a server.
+Note that we do not specify a port here. In fact, there is almost never a good reason to do so, since clients always connect to servers, and never the other way around.
+To connect to the server, we simple call Connect, of course with the appropriate IP address and port.
+Standard message loop
+
+Once we set up our client or server, we will have to check for new messages regularly 每 e.g. once per frame. This can be done as follows.
+All mentions of peer below can be either servers or clients.
+NetIncomingMessage message;
+while ((message = peer.ReadMessage()) != null)
+{
+    switch (message.MessageType)
+    {
+        case NetIncomingMessageType.Data:
+            // handle custom messagesvar data = message.Read*();
+            break;
+
+        case NetIncomingMessageType.StatusChanged:
+            // handle connection status messagesswitch(message.SenderConnection.Status)
+            {
+                /* .. */
+            }
+            break;
+
+        case NetIncomingMessageType.DebugMessage:
+            // handle debug messages// (only received when compiled in DEBUG mode)
+            Console.WriteLine(message.ReadString());
+            break;
+
+        /* .. */default:
+            Console.WriteLine("unhandled message with type: "
+                + message.MessageType);
+            break;
+    }
+}
+The MessageType of the received messages indicates what sort of message we received. Most importantly, NetIncomingMessageType.Data is assigned to all messages we send ourselves, andNetIncomingMessageType.StatusChanged messages tell us about new connections, and connections that change status (for example when disconnecting).
+Server specific status messages
+
+If as a server we receive a NetIncomingMessageType.StatusChanged message, we should check theNetConnectionStatus of the respective connection, which we can get usingmessage.SenderConnection.Status.
+If the status of the connection is Connected, the connection is new, and we should do whatever is necessary to integrate it into the application. We may for example add the new connection to a list of players, and send the new player a list of all already connected players.
+If the status is Disconnected, the client disconnected and we should handle that appropriately as well.
+There are a couple of other NetConnectionStatus values, but these two are the most important for a simple application.
+Client specific status messages
+
+As a client, we will want to check for the same two NetConnectionStatus messages as just mentioned. A value of Connected means that we successfully connected to our server, while Disconnected indicates that connection failed, or that we were disconnected, depending on our previous state.
+Sending messages
+
+Now that we can set up and establish a connection we should look at how to send messages to our peers.
+Whether we are the client or the server, we first have to create and write to a message as follows:
+var message = peer.CreateMessage();
+message.Write( /* .. */ );
+We can then send that message using one of the following methods:
+client.SendMessage(message,
+    NetDeliveryMethod.ReliableOrdered);
+
+server.SendMessage(message, recipient: clientConnection,
+    NetDeliveryMethod.ReliableOrdered);
+
+server.SendMessage(message, recipients: clientConnections,
+    NetDeliveryMethod.ReliableOrdered, 0);
+Note that a message can only be sent a single time. If you want to send a message to multiple clients, you can however use the last overload of SendMessage above and specify a list of connections.
+The second parameter of all SendMessage overloads determines how Lidgren will handle package loss and out-of-order messages. Lidgren uses UPD under the hood but has the functionality to both enforce the arrival of all messages, as well as the their order.
+For all the available methods, check the documentation on NetDeliveryMethod.
+The third parameter of all SendMessage overloads (optional for some) specifies a channel to use when an order-preserving delivery method is used.
+Conclusion
+
+This is all you will need to know for setting up a simple networking game or application in C# using Lidgren.Network. As you can see, the basics are fairly simple and I have not had a lot of troubles getting Lidgren to run and do what I want.
+Getting a sizeable multiplayer game up and running is of course a bit more complicated. I＊ll be sure to post a write-up on the architecture I use in my prototype Syzygy to handle networking as flexibly and easily as I can in a few weeks.
+If you are interested, please check out the library＊s repository, and my work-in-progress game Syzygy, which uses Lidgren.Network.
+Also make sure to check back next Monday, when I will explore a couple of other features of the library which might come in handy.
+Enjoy the pixels!
