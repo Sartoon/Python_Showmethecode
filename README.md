@@ -25,3 +25,8 @@
 
 **第 0009 题**：一个HTML文件，找出里面的链接。
 
+**第 0010 题**：使用 Python 生成类似于下图中的字母验证码图片
+
+![0010](https://github.com/Sartoon/Python_Showmethecode/blob/master/Pic/0010.jpg)
+[字母验证码](http://stackoverflow.com/questions/2823316/generate-a-random-letter-in-python)  
+阅读资料
